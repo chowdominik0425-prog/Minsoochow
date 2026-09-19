@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Two | Maze Challenge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header>
+    <nav class="nav"><a href="index.html" class="logo">YOUR.NAME</a>
+      <div class="nav-links"><a href="index.html">Home</a><a href="projects.html">Projects</a><a
+          href="index.html#about">About</a><a href="index.html#contact">Contact</a></div>
+    </nav>
+  </header>
+  <main>
+    <section class="section project-page maze-page">
+      <a class="button" href="projects.html">← Back to Projects</a>
+      <p class="section-label">PROJECT 02</p>
+      <h1>Maze Challenge</h1>
+      <p class="project-intro">Can you make it through all 20 levels? Level 1 is easy. Level 20 is the hardest.
+        NO SKIPPING AHEAD! You must complete each level in order to unlock the next one. CHEATERS! It will not count you
+        beaten it by skipping levels.</p>
+      </p>
+
+      <div class="maze-game">
+        <div class="maze-topbar">
+          <div><strong id="levelLabel">Level 1</strong><span id="difficultyLabel">Easy</span></div>
+          <div class="maze-actions">
+            <button id="resetBtn" class="maze-btn">Reset Level</button>
+            <button id="nextBtn" class="maze-btn" disabled>Next Level →</button>
+            <button id="lockBtn" class="maze-btn">🔒 Lock Screen</button>
+          </div>
+        </div>
+
+        <div class="level-picker" id="levelPicker" aria-label="Choose a level"></div>
+
+        <div class="maze-wrap">
+          <canvas id="mazeCanvas" aria-label="Maze game"></canvas>
+        </div>
+
+        <div class="maze-status" id="status">Use <b>W A S D</b> or the <b>arrow keys</b> to move.</div>
+        <div class="maze-controls">
+          <button class="move-btn" data-move="up">↑</button>
+          <div><button class="move-btn" data-move="left">←</button><button class="move-btn"
+              data-move="down">↓</button><button class="move-btn" data-move="right">→</button></div>
+        </div>
+        <p class="maze-progress" id="progress">Level 1 of 20</p>
+      </div>
+
+      <div class="project-details">
+        <h2>How to play</h2>
+        <p>Move the green player from the top-left corner to the glowing goal in the bottom-right corner. Reach the goal
+          to unlock the next level.</p>
+        <h2>20 levels</h2>
+        <p>The mazes grow as the levels increase, making later levels longer and more challenging.</p>
+        <a class="button" href="projects.html">← Back to Projects</a>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2026 Your Name. Built with HTML & CSS.</p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const levelLabel = document.getElementById('levelLabel');
+    const difficultyLabel = document.getElementById('difficultyLabel');
+    const statusEl = document.getElementById('status');
+    const progressEl = document.getElementById('progress');
+    const resetBtn = document.getElementById('resetBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const lockBtn = document.getElementById('lockBtn');
+    let screenLocked = false;
+    const picker = document.getElementById('levelPicker');
+    let level = 1, maze, player, won = false;
+    let highestCompleted = 0;
+
+    function sizeForLevel(n) { return 9 + (n - 1) * 2; }
+    function difficultyForLevel(n) {
+      if (n <= 5) return 'Easy';
+      if (n <= 10) return 'Medium';
+      if (n <= 15) return 'Hard';
+      return 'Extreme';
+    }
+
+    function makeMaze(size) {
+      const grid = Array.from(
+        { length: size },
+        () => Array.from(
+          { length: size },
+          () => ({
+            t: 1,
+            r: 1,
+            b: 1,
+            l: 1,
+            seen: false
+          })
+        )
+      );
+
+      const stack = [[1, 1]];
+      grid[1][1].seen = true;
+
+      const dirs = [
+        [-2, 0, 't', 'b'],
+        [0, 2, 'r', 'l'],
+        [2, 0, 'b', 't'],
+        [0, -2, 'l', 'r']
+      ];
+
+      while (stack.length) {
+        const [r, c] = stack[stack.length - 1];
+
+        const choices = dirs.filter(([dr, dc]) => {
+          const nr = r + dr;
+          const nc = c + dc;
+
+          return (
+            nr > 0 &&
+            nr < size - 1 &&
+            nc > 0 &&
+            nc < size - 1 &&
+            !grid[nr][nc].seen
+          );
+        });
+
+        if (!choices.length) {
+          stack.pop();
+          continue;
+        }
+
+        const [dr, dc, a, b] =
+          choices[Math.floor(Math.random() * choices.length)];
+
+        const nr = r + dr;
+        const nc = c + dc;
+
+        // Open the wall between the two maze cells
+        grid[r][c][a] = 0;
+        grid[nr][nc][b] = 0;
+
+        // Open the corridor between them
+        const mr = r + dr / 2;
+        const mc = c + dc / 2;
+
+        grid[mr][mc][a] = 0;
+        grid[mr][mc][b] = 0;
+        grid[mr][mc].seen = true;
+
+        // Mark destination as visited
+        grid[nr][nc].seen = true;
+
+        stack.push([nr, nc]);
+      }
+
+      return grid;
+    }
+
+
+    function setupLevel(n) {
+      level = n; won = false; nextBtn.disabled = true;
+      const size = sizeForLevel(level); maze = makeMaze(size); player = { r: 1, c: 1 };
+      levelLabel.textContent = 'Level ' + level; difficultyLabel.textContent = difficultyForLevel(level);
+      progressEl.textContent = 'Level ' + level + ' of 20';
+      statusEl.innerHTML = 'Use <b>W A S D</b> or the <b>arrow keys</b> to move.';
+      buildPicker(); resizeCanvas(); draw();
+    }
+
+    function buildPicker() {
+      picker.innerHTML = '';
+      for (let i = 1; i <= 20; i++) { const b = document.createElement('button'); b.textContent = i; b.className = 'level-btn' + (i === level ? ' active' : ''); b.onclick = () => setupLevel(i); picker.appendChild(b); }
+    }
+
+    function resizeCanvas() { const max = Math.min(760, Math.max(280, document.querySelector('.maze-wrap').clientWidth - 4)); canvas.width = max; canvas.height = max; }
+    function draw() {
+      if (!maze) return; const size = maze.length, cell = canvas.width / size; ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#39ff88'; ctx.lineWidth = Math.max(2, cell * 0.14); ctx.lineCap = 'square';
+      for (let r = 1; r < size - 1; r++) for (let c = 1; c < size - 1; c++) { const x = c * cell, y = r * cell, w = cell, h = cell, m = maze[r][c]; ctx.beginPath(); if (m.t) { ctx.moveTo(x, y); ctx.lineTo(x + w, y) } if (m.r) { ctx.moveTo(x + w, y); ctx.lineTo(x + w, y + h) } if (m.b) { ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h) } if (m.l) { ctx.moveTo(x, y); ctx.lineTo(x, y + h) } ctx.stroke(); }
+      const goalR = size - 2, goalC = size - 2; ctx.fillStyle = '#39ff88'; ctx.globalAlpha = .2; ctx.fillRect(goalC * cell + cell * .15, goalR * cell + cell * .15, cell * .7, cell * .7); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#39ff88'; ctx.beginPath(); ctx.arc(player.c * cell + cell / 2, player.r * cell + cell / 2, cell * .32, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, cell * .07); ctx.stroke();
+    }
+
+    function move(dr, dc) {
+      if (won) return;
+
+      const r = player.r;
+      const c = player.c;
+      const m = maze[r][c];
+
+      // The maze passages are 2 cells apart,
+      // so move 2 cells at a time.
+      if (dr === -1 && m.t) return;
+      if (dr === 1 && m.b) return;
+      if (dc === -1 && m.l) return;
+      if (dc === 1 && m.r) return;
+
+      player.r += dr * 2;
+      player.c += dc * 2;
+
+      draw();
+
+      if (
+        player.r === maze.length - 2 &&
+        player.c === maze.length - 2
+      ) {
+
+        // Level 20 only counts if Levels 1-19 were completed
+        if (level === 20 && highestCompleted < 19) {
+          won = true;
+          nextBtn.disabled = true;
+
+          statusEl.innerHTML =
+            '<b>🔒 Level 20 does not count yet!</b><br>' +
+            'Complete Levels 1-19 first to beat the full challenge.';
+          return;
+        }
+
+        // Record this level as completed
+        highestCompleted = Math.max(highestCompleted, level);
+
+        won = true;
+
+        if (level < 20) {
+          nextBtn.disabled = false;
+
+          statusEl.innerHTML =
+            '<b>Level complete!</b> Click “Next Level →” to continue.';
+        } else {
+          nextBtn.disabled = true;
+
+          statusEl.innerHTML =
+            '<b>🏆 You beat all 20 levels!</b>';
+        }
+      }
+    }
+
+
+    document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      const moves = {
+        arrowup: [-1, 0],
+        w: [-1, 0],
+        arrowdown: [1, 0],
+        s: [1, 0],
+        arrowleft: [0, -1],
+        a: [0, -1],
+        arrowright: [0, 1],
+        d: [0, 1]
+      };
+
+      if (moves[k]) {
+        e.preventDefault();
+        move(...moves[k]);
+      }
+    });
+
+
+    resetBtn.onclick = () => setupLevel(level);
+    nextBtn.onclick = () => {
+      if (level < 20 && level === highestCompleted) {
+        setupLevel(level + 1);
+      }
+    };
+
+    lockBtn.onclick = () => {
+      screenLocked = !screenLocked;
+
+      if (screenLocked) {
+        document.body.style.overflow = 'hidden';
+        lockBtn.textContent = '🔓 Unlock Screen';
+        lockBtn.classList.add('active');
+      } else {
+        document.body.style.overflow = '';
+        lockBtn.textContent = '🔒 Lock Screen';
+        lockBtn.classList.remove('active');
+      }
+    };
+
+    document.querySelectorAll('.move-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const m = b.dataset.move;
+        const d = {
+          up: [-1, 0],
+          down: [1, 0],
+          left: [0, -1],
+          right: [0, 1]
+        }[m];
+        move(...d);
+      });
+    });
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      draw();
+    });
+    setupLevel(1);
+  </script>
+</body>
+
+</html>

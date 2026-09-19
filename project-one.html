@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landscapes | Minsoochow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header>
+    <nav class="nav">
+      <a href="index.html" class="logo">Minsoochow</a>
+
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="projects.html">Projects</a>
+        <a href="index.html#about">About</a>
+        <a href="index.html#contact">Contact</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section project-page">
+
+      <a class="button" href="projects.html">
+        ← Back to Projects
+      </a>
+
+      <p class="section-label">PROJECT 01</p>
+
+      <h1>Landscape</h1>
+
+      <p class="project-intro">
+        This project was made to show viewers photos of landscapes
+        that I have taken, seen, or created.
+      </p>
+
+      <div class="project-details">
+
+        <h2>About this project</h2>
+
+        <p>
+          These images are available for phone, tablet, and desktop
+          wallpaper.
+        </p>
+
+        <h2>What I built</h2>
+
+        <section class="photo-gallery">
+          <h2>Waterfall Photography</h2>
+
+          <picture>
+            <!-- Phone version -->
+            <source
+              media="(max-width: 600px)"
+              srcset="images/waterfall-portrait.png"
+            >
+
+            <!-- Tablet version -->
+            <source
+              media="(max-width: 1024px)"
+              srcset="images/waterfall-tablet.png"
+            >
+
+            <!-- Desktop version -->
+            <img
+              src="images/waterfall-wide.png"
+              alt="Waterfall surrounded by lush green forest"
+            >
+          </picture>
+        </section>
+
+        <a class="button" href="projects.html">
+          ← Back to Projects
+        </a>
+
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2026 Minsoochow. Built with HTML & CSS.</p>
+  </footer>
+</body>
+</html>
